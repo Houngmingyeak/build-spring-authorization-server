@@ -26,7 +26,11 @@ public class TokenCustomizerConfig {
 
             List<String> roles = new ArrayList<>();
             for (GrantedAuthority authority : principal.getAuthorities()) {
-                roles.add(authority.getAuthority());
+                String authorityName = authority.getAuthority();
+
+                if (authorityName.startsWith("ROLE_")) {
+                    roles.add(authorityName);
+                }
             }
 
             context.getClaims().claim("roles", roles);
