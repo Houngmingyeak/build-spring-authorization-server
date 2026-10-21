@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: spring-authorization-server
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/auth_db
+    username: postgres
+    password: postgre
+
+  security:
+    user:
+      name: admin
+      password: 1234
+    oauth2:
+      authorizationserver:
+        client:
+          public-client:
+            registration:
+              client-id: "public-client"
+              client-authentication-methods:
+                - "none"
+              authorization-grant-types:
+                - "authorization_code"
+              redirect-uris:
+                - "http://127.0.0.1:4200"
+              scopes:
+                - "openid"
+                - "profile"
+            require-authorization-consent: true
+            require-proof-key: true
