@@ -3,6 +3,7 @@ package co.istad.springauthorizationserver.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -53,7 +54,11 @@ public class SecurityConfig {
             throws Exception {
         http
                 .authorizeHttpRequests((authorize) -> authorize
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .anyRequest().authenticated()
+                )
+                .csrf((csrf) -> csrf
+                        .ignoringRequestMatchers("/api/auth/register")
                 )
                 .formLogin(Customizer.withDefaults());
 
