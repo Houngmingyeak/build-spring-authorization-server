@@ -12,8 +12,10 @@ import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Component
@@ -37,6 +39,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
+        // ===== បង្កើត user admin (បើមិនទាន់មាន) =====
         if (!userRepository.existsByUsername("admin")) {
 
             Role adminRole = roleRepository.findByName("ROLE_ADMIN")
@@ -56,6 +59,7 @@ public class DataInitializer implements CommandLineRunner {
             userRepository.save(admin);
         }
 
+        // ===== បង្កើត client public-client (បើមិនទាន់មាន) =====
         if (registeredClientRepository.findByClientId("public-client") == null) {
 
             RegisteredClient publicClient = RegisteredClient.withId(UUID.randomUUID().toString())
@@ -74,6 +78,37 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             registeredClientRepository.save(publicClient);
+        }
+
+        // ===== ថ្មី ===== បង្កើត client confidential-client (បើមិនទាន់មាន)
+        if (registeredClientRepository.findByClientId("confidential-client") == null) {
+
+            RegisteredClient confidentialClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("confidential-client")
+                    .clientName("Confidential Client")
+                    // secret ត្រូវ hash ដោយ BCrypt មុនទុកក្នុង database (ពេលវាយក្នុង Postman ប្រើ client-secret-123)
+                    .clientSecret(passwordEncoder.encode("client-secret-123"))
+                    // អនុញ្ញាតទាំង ២ របៀបផ្ញើ secret: Basic header និង body
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+                    // authorization_code សម្រាប់ login, refresh_token សម្រាប់ស្នើ access token ថ្មី
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .scope(OidcScopes.OPENID)
+                    .scope(OidcScopes.PROFILE)
+                    .clientSettings(ClientSettings.builder()
+                            .requireAuthorizationConsent(true)
+                            .requireProofKey(true)
+                            .build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofMinutes(5))
+                            .refreshTokenTimeToLive(Duration.ofDays(7))
+                            .reuseRefreshTokens(false)
+                            .build())
+                    .build();
+
+            registeredClientRepository.save(confidentialClient);
         }
     }
 }
