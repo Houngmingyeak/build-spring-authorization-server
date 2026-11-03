@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -80,7 +81,7 @@ public class DataInitializer implements CommandLineRunner {
             registeredClientRepository.save(publicClient);
         }
 
-        // ===== ថ្មី ===== បង្កើត client confidential-client (បើមិនទាន់មាន)
+        // ===== បង្កើត client confidential-client (បើមិនទាន់មាន) =====
         if (registeredClientRepository.findByClientId("confidential-client") == null) {
 
             RegisteredClient confidentialClient = RegisteredClient.withId(UUID.randomUUID().toString())
@@ -109,6 +110,28 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             registeredClientRepository.save(confidentialClient);
+        }
+
+        // ===== ថ្មី ===== បង្កើត client order-service សម្រាប់ client_credentials (service ទៅ service)
+        if (registeredClientRepository.findByClientId("order-service") == null) {
+
+            RegisteredClient orderServiceClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("order-service")
+                    .clientName("Order Service")
+                    // secret ត្រូវ hash ដោយ BCrypt មុនទុកក្នុង database (ក្នុង order-service yaml ប្រើ order-service-secret)
+                    .clientSecret(passwordEncoder.encode("order-service-secret"))
+                    .clientIdIssuedAt(Instant.now())
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    // client_credentials មិនត្រូវការ redirectUri ហើយគ្មាន user
+                    .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                    // scope នេះ customer-service នឹងត្រួតពិនិត្យជា SCOPE_customer.read
+                    .scope("customer.read")
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofMinutes(30))
+                            .build())
+                    .build();
+
+            registeredClientRepository.save(orderServiceClient);
         }
     }
 }
